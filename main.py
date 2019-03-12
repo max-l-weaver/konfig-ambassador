@@ -46,10 +46,10 @@ def _return_service_annotations(kubernetes_client, namespace='', service_name=''
             namespace=namespace,
             name=service_name
         )
-    except ApiException as e:
-        print("foo")
-        LOGGER.error("Error getting service %s. Error is %s", service_name, e.text)
-        return "foo"
+    except ApiException as error:
+        LOGGER.error("""Error getting service annotations for %s
+check you're logged into the right cluster for %s. Error number is %s""",
+        service_name, namespace, error)
 
     if service is not None:
         return service.metadata.annotations
@@ -78,9 +78,17 @@ def _load_yaml(yaml_file=''):
 Error is %s. File loaded is %s""", e, yaml_file)
 
     try:
-        return loaded_yaml['platform']
+        LOGGER.debug("testing config file is legit")
+        loaded_yaml['platform']['services']
+        loaded_yaml['platform']['global']
+        loaded_yaml['namespace']
     except KeyError:
-        LOGGER.error("unable to return config file. Please check it's configured correctly")
+        LOGGER.error("""unable to return config file.
+Please check it's configured correctly. Please see README for more details.
+Exiting as can't go any further""")
+        sys.exit(1)
+
+    return loaded_yaml
 
 def _convert_annotations(raw_annotations={}):
 
@@ -93,6 +101,7 @@ def _convert_annotations(raw_annotations={}):
     for k, v in raw_annotations.items():
         if isinstance(v, dict):
             if k == "add_response_headers":
+                LOGGER.debug("response headers found - adding")
                 annotations.append(f"{k}:\n")
                 for key, value in v.items():
                     annotations.append("  {key}: \"{value}\"\n".format(
@@ -106,20 +115,29 @@ def _convert_annotations(raw_annotations={}):
 
 def _merge_annotations(existing_annotations=[], new_annotations=[]):
     # existing_annotations = existing_annotations.split('\n')
+    LOGGER.debug("merging annotations")
     new_annotations = new_annotations
-    print(existing_annotations, "\n")
 
     for annotation in new_annotations:
         existing_annotations.append(annotation)
 
     try:
+        LOGGER.debug("removing any empty elements from annotations")
         existing_annotations.remove('') # Remove any empty elements
     except ValueError:
+        LOGGER.debug("no empty elements found - skipping")
         pass
 
+    LOGGER.debug("annotations merged. Merged body is %s", existing_annotations)
     return existing_annotations
 
-def update_annotations(kubernetes_session, annotations, namespace='', service_name=''):
+def update_annotations(kubernetes_session, annotations, namespace='', service_name='', dry_run=False):
+
+    # Apparently you have to pass a string to dry run :wat:
+    if dry_run:
+        dry_run = 'All'
+    else:
+        dry_run = ''
 
     body = client.V1Service
     metadata_object = client.V1ObjectMeta
@@ -128,17 +146,17 @@ def update_annotations(kubernetes_session, annotations, namespace='', service_na
         annotations={"getambassador.io/config": ''.join(annotations)}
     )
     body = body(metadata=metadata_object)
-    print(body)
+    LOGGER.debug("preparing body for updating. %s", body)
 
     try:
         LOGGER.info("Patching service %s on %s", service_name, namespace)
         patched_service = kubernetes_session.patch_namespaced_service(
             namespace=namespace,
             name=service_name,
-            body=body
+            body=body,
+            dry_run=dry_run
         )
     except ApiException as e:
-        print("foo")
         LOGGER.error("Error getting service %s. Error is %s", service_name, e)
         return
     else:
@@ -146,32 +164,33 @@ def update_annotations(kubernetes_session, annotations, namespace='', service_na
 
 def argument_parser():
     args = argparse.ArgumentParser()
-    args.add_argument("-c", "--client", required=True, help="""The namespace
-you wish to work on. i.e. sbb-dev""")
-    args.add_argument("--env", "-e", required=True, help="""The namespace
-you wish to work on. i.e. sbb-dev""")
-    args.add_argument("-s", "--service", help="""The name of the
-service you wish to patch""")
     args.add_argument("--config-file", help="""The yaml file containing
 annotations settings. If ommited then they will need to be parsed as json""")
-    args.add_argument("--json", help="json object containing the annotations")
-    args.add_argument("--update", action="store_true", help=""""updates
-instead of replaces""")
+    args.add_argument("--dry-run", action='store_false', help="""The yaml file containing
+annotations settings. If ommited then they will need to be parsed as json""")
 
     return args.parse_args()
 
 def main():
 
-    namespace = "{}-{}".format(
-        argument_parser().client,
-        argument_parser().env
-    )
-    print(namespace)
+    LOGGER.debug("loading config file")
+    loaded_file = _load_yaml(argument_parser().config_file)
+
+    namespace = loaded_file['namespace']
+    LOGGER.debug("found namespace: %s", namespace)
+
     LOGGER.info("Updating annotations for %s", namespace)
-    session = _kubernetes_client(argument_parser().env)
+
+    LOGGER.debug("Creating kubernetes session")
+    env = namespace.split('-')
+    if len(env) <= 1:
+        LOGGER.error("""Incorrect namespace format provided for namespace %s.
+Namespace should be in the format {client}-{env}""", namespace)
+        sys.exit(1)
+    env = env[-1]
+    session = _kubernetes_client(env)
     globes = []
 
-    loaded_file = _load_yaml(argument_parser().config_file)
     try:
         globes = loaded_file['global']
     except KeyError:
@@ -180,19 +199,17 @@ def main():
     if globes:
         globes = _convert_annotations(globes)
 
-    for k, v in loaded_file['services'].items():
-        #print("\nv is: ", v)
+    for k, v in loaded_file['platform']['services'].items():
         converted = _convert_annotations(v)
         merged = _merge_annotations(converted, globes)
-        #print("\nmerged is: ", merged)
         updated = update_annotations(
             session,
             annotations=merged,
             namespace=namespace,
-            service_name=k
+            service_name=k,
+            dry_run=argument_parser().dry_run
         )
 
-    # LOGGER.debug("%s", updated)
 
 if __name__ == '__main__':
     main()

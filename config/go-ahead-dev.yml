@@ -1,3 +1,4 @@
+namespace: 'go-ahead-dev'
 platform:
   global:
     apiVersion: ambassador/v1
