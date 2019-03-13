@@ -1,3 +1,4 @@
+"""Kongfig for Ambassador"""
 import os
 import sys
 import logging
@@ -37,6 +38,7 @@ def _kubernetes_client(env='dev', kube_config=''):
     else:
         return client.CoreV1Api()
 
+
 def _return_service_annotations(kubernetes_client, namespace='', service_name=''):
 
     try:
@@ -49,15 +51,16 @@ def _return_service_annotations(kubernetes_client, namespace='', service_name=''
     except ApiException as error:
         LOGGER.error("""Error getting service annotations for %s
 check you're logged into the right cluster for %s. Error number is %s""",
-        service_name, namespace, error)
+                     service_name, namespace, error)
 
     if service is not None:
         return service.metadata.annotations
     else:
         LOGGER.error("""No service information found for %s on %s.
 Please ensure the service exists and the service_name/namespace is correct""",
-service_name, namespace)
+                     service_name, namespace)
         return service
+
 
 def _load_yaml(yaml_file=''):
 
@@ -67,30 +70,33 @@ def _load_yaml(yaml_file=''):
 
     if not os.path.exists(yaml_file):
         LOGGER.critical("Yaml file %s doesn't exist, please check and try again",
-        yaml_file)
+                        yaml_file)
         sys.exit(1)
 
     try:
         with open(yaml_file, 'r') as yf:
             loaded_yaml = yaml.load(yf)
-    except yaml.scanner.ScannerError as e:
+    except (yaml.scanner.ScannerError, yaml.parser.ParserError) as e:
         LOGGER.critical("""Error loading yaml file. Is this formatted correctly?
-Error is %s. File loaded is %s""", e, yaml_file)
+Error is:\n%s. File loaded is %s""", e, yaml_file)
 
     try:
         LOGGER.debug("testing config file is legit")
         loaded_yaml['platform']['services']
         loaded_yaml['platform']['global']
         loaded_yaml['namespace']
-    except KeyError:
-        LOGGER.error("""unable to return config file.
+    except KeyError as e:
+        LOGGER.error("""unable to parse config file - the key %s doesnt exist.
 Please check it's configured correctly. Please see README for more details.
-Exiting as can't go any further""")
+Exiting as can't go any further""", e)
         sys.exit(1)
 
     return loaded_yaml
 
+
 def _convert_annotations(raw_annotations={}):
+    """Takes annotations in yaml loaded form and converts them to a
+    list of properly formatted strings ready for joining"""
 
     annotations = []
 
@@ -113,8 +119,8 @@ def _convert_annotations(raw_annotations={}):
 
     return annotations
 
+
 def _merge_annotations(existing_annotations=[], new_annotations=[]):
-    # existing_annotations = existing_annotations.split('\n')
     LOGGER.debug("merging annotations")
     new_annotations = new_annotations
 
@@ -123,7 +129,7 @@ def _merge_annotations(existing_annotations=[], new_annotations=[]):
 
     try:
         LOGGER.debug("removing any empty elements from annotations")
-        existing_annotations.remove('') # Remove any empty elements
+        existing_annotations.remove('')
     except ValueError:
         LOGGER.debug("no empty elements found - skipping")
         pass
@@ -131,13 +137,8 @@ def _merge_annotations(existing_annotations=[], new_annotations=[]):
     LOGGER.debug("annotations merged. Merged body is %s", existing_annotations)
     return existing_annotations
 
-def update_annotations(kubernetes_session, annotations, namespace='', service_name='', dry_run=False):
 
-    # Apparently you have to pass a string to dry run :wat:
-    if dry_run:
-        dry_run = 'All'
-    else:
-        dry_run = ''
+def update_annotations(kubernetes_session, annotations, namespace='', service_name=''):
 
     body = client.V1Service
     metadata_object = client.V1ObjectMeta
@@ -153,8 +154,7 @@ def update_annotations(kubernetes_session, annotations, namespace='', service_na
         patched_service = kubernetes_session.patch_namespaced_service(
             namespace=namespace,
             name=service_name,
-            body=body,
-            dry_run=dry_run
+            body=body
         )
     except ApiException as e:
         LOGGER.error("Error getting service %s. Error is %s", service_name, e)
@@ -162,14 +162,18 @@ def update_annotations(kubernetes_session, annotations, namespace='', service_na
     else:
         return patched_service
 
+
 def argument_parser():
     args = argparse.ArgumentParser()
     args.add_argument("--config-file", help="""The yaml file containing
 annotations settings. If ommited then they will need to be parsed as json""")
-    args.add_argument("--dry-run", action='store_false', help="""The yaml file containing
+    args.add_argument("--dry-run", action='store_true', help="""The yaml file containing
 annotations settings. If ommited then they will need to be parsed as json""")
+    args.add_argument("--debug", action='store_true', help="""Switch on debug
+output""")
 
     return args.parse_args()
+
 
 def main():
 
@@ -192,7 +196,7 @@ Namespace should be in the format {client}-{env}""", namespace)
     globes = []
 
     try:
-        globes = loaded_file['global']
+        globes = loaded_file['platform']['global']
     except KeyError:
         LOGGER.info("no globals set - skipping")
 
@@ -202,14 +206,21 @@ Namespace should be in the format {client}-{env}""", namespace)
     for k, v in loaded_file['platform']['services'].items():
         converted = _convert_annotations(v)
         merged = _merge_annotations(converted, globes)
-        updated = update_annotations(
+        update = update_annotations(
             session,
             annotations=merged,
             namespace=namespace,
-            service_name=k,
-            dry_run=argument_parser().dry_run
+            service_name=k
         )
+        LOGGER.debug("%s", update)
+    LOGGER.info("Successfully updated ting")
 
 
 if __name__ == '__main__':
+    if argument_parser().debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+
+    logging.basicConfig(stream=sys.stdout, level=level)
     main()
