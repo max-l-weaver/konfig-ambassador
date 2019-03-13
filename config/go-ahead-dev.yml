@@ -15,49 +15,49 @@ platform:
       name: agent-go-ahead-foo
       prefix: /go-ahead/dev/agent/
       service: http://agent.go-ahead-dev.svc:8080
-#    bookmark:
-#      name: bookmark-go-ahead
-#      prefix: /go-ahead/dev/bookmark/
-#      service: http://bookmark.go-ahead-dev.svc:8080
-#    capture:
-#      name: capture-go-ahead
-#      prefix: /go-ahead/dev/capture/
-#      service: http://capture.go-ahead-dev.svc:8080
-#    fact:
-#      name: fact-go-ahead
-#      prefix: /go-ahead/dev/fact/
-#      service: http://fact.go-ahead-dev.svc:8080
-#    notification:
-#      name: notification-go-ahead
-#      prefix: /go-ahead/dev/notification/
-#      service: http://notification.go-ahead-dev.svc:8080
-#    sensing-receiver-service:
-#      name: sensing-go-ahead
-#      prefix_regex: true
-#      prefix: /go-ahead/dev/(sensing|timeline)/
-#      service: http://notification.go-ahead-dev.svc:8080
-#      timeout_ms: 10000
-#    profile:
-#      name: profile-go-ahead
-#      prefix: /go-ahead/dev/profile/
-#      service: http://profile.go-ahead-dev.svc:8080
-#    vehicle:
-#      name: vehicle-go-ahead
-#      prefix: /go-ahead/dev/vehicle/
-#      service: http://vehicle.go-ahead-dev.svc:8080
-#    wallet:
-#      name: vehicle-go-ahead
-#      prefix: /go-ahead/dev/vehicle/
-#      service: http://vehicle.go-ahead-dev.svc:8080
-#    transit-route-shape:
-#      name: transit-go-ahead
-#      prefix: /go-ahead/dev/transit-route-shape/
-#      service: http://transit-route-shape.go-ahead-dev.svc:8080
-#    routing:
-#      name: routing-go-ahead
-#      prefix: /go-ahead/dev/routing/
-#      service: http://routing.go-ahead-dev.svc:8080
-#    sensorsim:
-#      name: sensorsim-go-ahead
-#      prefix: /go-ahead/dev/sensorsim/
-#      service: http://sensorsim.go-ahead-dev.svc:8080
+    bookmark:
+      name: bookmark-go-ahead
+      prefix: /go-ahead/dev/bookmark/
+      service: http://bookmark.go-ahead-dev.svc:8080
+    capture:
+      name: capture-go-ahead
+      prefix: /go-ahead/dev/capture/
+      service: http://capture.go-ahead-dev.svc:8080
+    fact:
+      name: fact-go-ahead
+      prefix: /go-ahead/dev/fact/
+      service: http://fact.go-ahead-dev.svc:8080
+    notification:
+      name: notification-go-ahead
+      prefix: /go-ahead/dev/notification/
+      service: http://notification.go-ahead-dev.svc:8080
+    sensing-receiver-service:
+      name: sensing-go-ahead
+      prefix_regex: true
+      prefix: /go-ahead/dev/(sensing|timeline)/
+      service: http://notification.go-ahead-dev.svc:8080
+      timeout_ms: 10000
+    profile:
+      name: profile-go-ahead
+      prefix: /go-ahead/dev/profile/
+      service: http://profile.go-ahead-dev.svc:8080
+    vehicle:
+      name: vehicle-go-ahead
+      prefix: /go-ahead/dev/vehicle/
+      service: http://vehicle.go-ahead-dev.svc:8080
+    wallet:
+      name: vehicle-go-ahead
+      prefix: /go-ahead/dev/vehicle/
+      service: http://vehicle.go-ahead-dev.svc:8080
+    transit-route-shape:
+      name: transit-go-ahead
+      prefix: /go-ahead/dev/transit-route-shape/
+      service: http://transit-route-shape.go-ahead-dev.svc:8080
+    routing:
+      name: routing-go-ahead
+      prefix: /go-ahead/dev/routing/
+      service: http://routing.go-ahead-dev.svc:8080
+    sensorsim:
+      name: sensorsim-go-ahead
+      prefix: /go-ahead/dev/sensorsim/
+      service: http://sensorsim.go-ahead-dev.svc:8080
