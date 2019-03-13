@@ -15,7 +15,7 @@ is unavailable so it will just create duplicate values.
 
 The config file must be in yaml format and contain the following keys:
 
-```
+```yaml
 namespace: foo-bar-dev
 platform:
   global:
@@ -27,7 +27,7 @@ platform:
 
 ## Command
 
-```
+```bash
 $ python3.7 -m venv venv
 $ . venv/bin/activate
 $(venv) pip install -r requirements.txt
