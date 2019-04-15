@@ -1,0 +1,21 @@
+namespace: 'evilcorp-dev'
+platform:
+  global:
+    apiVersion: ambassador/v1
+    kind: Mapping
+    host: ".*.evilcorp.com"
+    host_regex: true
+    add_response_headers:
+      strict-transport-security: "max-age=300; includeSubDomains"
+      x-clacks-overhead: GNU Terry Pratchett
+      x-test-proto: "%PROTOCOL%"
+      x-test-ip: "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%"
+  services:
+    http:
+      name: http
+      prefix: "/foo/bar"
+      service: http://http.evilcorp.svc:8080
+    auth:
+      name: auth
+      prefix: "/foo/bar"
+      service: http://auth.evilcorp.svc:8080
