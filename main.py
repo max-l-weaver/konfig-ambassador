@@ -114,8 +114,10 @@ def _convert_annotations(raw_annotations={}):
                         key=key,
                         value=value
                     ))
+        elif 'regex' in k:
+           annotations.append(f"{k}: {v}\n")
         else:
-            annotations.append(f"{k}: {v}\n")
+            annotations.append(f"{k}: \"{v}\"\n")
 
     return annotations
 
